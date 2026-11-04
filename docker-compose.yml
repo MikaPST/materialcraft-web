@@ -1,0 +1,7 @@
+services:
+  materialcraft-web:
+    image: ghcr.io/mikapst/materialcraft-web:latest
+    container_name: materialcraft-web
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
