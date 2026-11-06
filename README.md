@@ -3,7 +3,6 @@
 </p>
 
 <h1 align="center">MaterialCraft Web — Docker Image</h1>
-
 <p align="center">
   A community-maintained Docker image for
   <a href="https://github.com/storytold/materialcraft">MaterialCraft</a>,
@@ -11,10 +10,12 @@
   <br>
   Build automation and image publication to GitHub Container Registry (GHCR).
 </p>
-
 <p align="center">
   <a href="https://github.com/MikaPST/materialcraft-web/actions/workflows/publish-image.yml">
     <img src="https://github.com/MikaPST/materialcraft-web/actions/workflows/publish-image.yml/badge.svg" alt="Build and publish MaterialCraft Web">
+  </a>
+  <a href="https://github.com/MikaPST/materialcraft-web/releases/latest">
+    <img src="https://img.shields.io/github/v/release/MikaPST/materialcraft-web?label=Release&logo=github&color=blue" alt="Latest Release">
   </a>
   <a href="https://github.com/MikaPST/materialcraft-web/pkgs/container/materialcraft-web">
     <img src="https://ghcr-badge.egpl.dev/mikapst/materialcraft-web/latest_tag?trim=major&label=GHCR" alt="GHCR image tag">
@@ -32,6 +33,7 @@ The official MaterialCraft project provides a WebAssembly-based version that can
 
 The goals are to:
 
+- Publish a matching GitHub Release only after the Docker build and push succeed.
 - Build the MaterialCraft Web application from the upstream source code.
 - Publish a ready-to-run Docker image to GHCR.
 - Automatically rebuild the image every week to incorporate upstream changes.
@@ -62,6 +64,14 @@ The image is published to GitHub Container Registry:
 ```text
 ghcr.io/mikapst/materialcraft-web:latest
 ```
+
+Each official upstream release is also published under its exact version tag, for example:
+
+```text
+ghcr.io/mikapst/materialcraft-web:vX.Y.Z
+```
+
+Use a versioned tag if you want to keep a deployment on a specific release. The `latest` tag updates when an image is published.
 
 ### Option 1 — Docker Compose (recommended)
 
@@ -137,25 +147,31 @@ Do not expose an unencrypted HTTP port directly to the public Internet. Restrict
 
 ## Automated builds
 
-GitHub Actions builds and publishes the image automatically.
+GitHub Actions checks the official [MaterialCraft releases](https://github.com/storytold/materialcraft/releases), builds the WebAssembly application from the selected upstream tag and publishes the image to GHCR.
 
 | Trigger | Behaviour |
 |---|---|
-| Weekly schedule | Rebuilds from the upstream `main` branch |
-| Manual workflow dispatch | Allows a build to be triggered manually |
-| Changes to this repository's workflow, README or Compose file on `main` | Triggers a build |
+| Weekly schedule | Checks the latest official MaterialCraft release and builds it if it has not already been published here |
+| Manual workflow dispatch | Builds the latest official release, or a specified `upstream_tag` |
+| Force rebuild | Rebuilds an already published version with `force_rebuild: true` |
+| Changes to packaging files on `main` | Rebuilds the current official upstream release with the updated workflow |
 
-Each successful build publishes:
+### Published tags
 
-- `latest` — the most recently published image.
-- `upstream-<commit>` — a build-specific tag identifying the upstream commit used.
+- `latest` — the latest successfully published image (mutable tag).
+- `<upstream-version>` — the exact official upstream tag, for example `vX.Y.Z`.
+- `upstream-<commit>` — the upstream source commit used for the image (first 12 hexadecimal characters).
 
-The build targets `linux/amd64` and `linux/arm64`. The web application itself runs in the browser; these architectures describe the platforms on which the static-file-serving container image can run.
+The image targets both `linux/amd64` and `linux/arm64`. The workflow checks out **the official upstream release tag**, rather than compiling `main` as the versioned source.
+
+### GitHub Releases
+
+After a successful Docker build and GHCR push, the workflow creates or updates a [GitHub Release](https://github.com/MikaPST/materialcraft-web/releases) matching the upstream tag. It includes the upstream release notes, source link and commit, Docker tags, supported architectures and (when available) the published image digest.
+
+The Release badge at the top of this README updates automatically. Scheduled runs skip versions already released here. You can force a rebuild from **Actions → Build and publish MaterialCraft Web → Run workflow**.
 
 > [!IMPORTANT]
-> MaterialCraft is under active development. Its upstream project describes the application as incomplete, with parts of the node library, the GPU 3D view, mesh-based nodes and other workflow areas still in progress. A successful image build does not guarantee that every feature is complete or stable. Test new images before relying on them for important work.
-
-The `latest` tag is mutable and may point to a newer image after a successful build.
+> A GitHub Release is created only after the Docker image has been successfully published. The `latest` tag may change after a rebuild; pin a versioned image tag for a stable deployment. Auxiliary source repositories (for example `craft-fonts`) may be checked out separately and are not necessarily pinned to the upstream release commit.
 
 ## Unraid Community Applications
 
@@ -167,6 +183,7 @@ The Unraid template references the published GHCR image and provides configurati
 - **MaterialCraft Web template:** to be added when the template is published.
 
 This repository contains the image build, publication workflow and Docker Compose configuration. The Unraid Community Applications template is maintained separately.
+- **Template:** [materialcraft-web.xml](https://github.com/MikaPST/unraid-community-apps/blob/main/templates/materialcraft-web.xml)
 
 ## Upstream project
 
@@ -178,6 +195,8 @@ MaterialCraft is an open-source, node-based procedural material designer written
 - **Official releases:** [MaterialCraft releases](https://github.com/storytold/materialcraft/releases)
 
 The upstream web application is built with Trunk from `apps/materialcraft-web`. This repository builds that browser application from upstream source and packages the generated static files in an NGINX image. It does not modify the MaterialCraft application itself.
+
+The MikaPST GitHub Release tracks the upstream version but represents independent Docker packaging, not an official MaterialCraft distribution.
 
 ## License and attribution
 
